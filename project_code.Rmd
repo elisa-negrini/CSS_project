@@ -1,0 +1,223 @@
+---
+title: "CSS code"
+author: "Elisa Negrini"
+date: "2025-07-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data ingestion
+
+```{r}
+library(readr)
+data_new <- readr::read_csv("C:\\Users\\utente\\Desktop\\UNITN\\Computational social science\\paper CSS\\reddit_comments_expanded_new.csv")
+data_pag <- readr::read_csv("C:\\Users\\utente\\Desktop\\UNITN\\Computational social science\\paper CSS\\reddit_comments_expanded_paginated.csv")
+```
+Variabili dei dataset:
+```{r}
+names(data_new)
+```
+## Exploratory analysis
+
+### Users activity
+Function to visualize the activity (by post or comments) over time:
+```{r}
+library(tidyverse)
+library(lubridate)
+library(patchwork)
+plot_activity_over_time <- function(dataset) {
+  # Automatically get the variable name as string
+  dataset_name <- deparse(substitute(dataset))
+  
+  # 1. Ensure datetime conversion
+  dataset <- dataset %>%
+    mutate(
+      comment_created = ymd_hms(comment_created_utc),
+      post_created = ymd_hms(post_created_utc)
+    )
+  
+  # 2. Count comments per day
+  comments_per_day <- dataset %>%
+    mutate(date = as_date(comment_created)) %>%
+    count(date, name = "count")
+  
+  # 3. Count posts per day
+  posts_per_day <- dataset %>%
+    mutate(date = as_date(post_created)) %>%
+    count(date, name = "count")
+  
+  # 4. Create plots
+  p_comments <- ggplot(comments_per_day, aes(x = date, y = count)) +
+    geom_line(color = "steelblue") +
+    labs(
+      title = paste("Comments Over Time -", dataset_name),
+      x = "Date",
+      y = "Number of Comments"
+    ) +
+    theme_minimal()
+  
+  p_posts <- ggplot(posts_per_day, aes(x = date, y = count)) +
+    geom_line(color = "darkred") +
+    labs(
+      title = paste("Posts Over Time -", dataset_name),
+      x = "Date",
+      y = "Number of Posts"
+    ) +
+    theme_minimal()
+  
+  # 5. Combine plots
+  return(p_comments / p_posts + plot_layout(heights = c(1, 1)))
+}
+
+```
+
+Used on data_new dataset
+```{r}
+plot_activity_over_time(data_new)
+```
+Used on data_pag dataset:
+```{r}
+plot_activity_over_time(data_pag)
+```
+
+To visualize the distribution on comments per post for both dataset the boxplots are shown:
+```{r}
+# 1. Count comments per post for each dataset
+comments_per_post_new <- data_new %>%
+  group_by(post_id) %>%
+  summarise(n_comments = n(), .groups = "drop") %>%
+  mutate(dataset = "data_new")
+
+comments_per_post_pag <- data_pag %>%
+  group_by(post_id) %>%
+  summarise(n_comments = n(), .groups = "drop") %>%
+  mutate(dataset = "data_pag")
+
+# 2. Combine the two datasets
+all_comments <- bind_rows(comments_per_post_new, comments_per_post_pag)
+
+# 3. Create the boxplot
+ggplot(all_comments, aes(x = dataset, y = n_comments, fill = dataset)) +
+  geom_boxplot() +
+  labs(
+    title = "Number of Comments per Post by Dataset",
+    x = "Dataset",
+    y = "Number of Comments per Post"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+### Frequent words
+
+The most frequent words in the comments are visualized across three distinct groups:
+
+1. comments on posts that mention "trump" only,
+
+2. comments on posts that mention "zelensky" only, and
+
+3. comments on posts that mention both "trump" and "zelensky".
+
+(it is possible to select words that should be omitted in the plots)
+```{r}
+library(tidyverse)
+library(tidytext)
+
+data("stop_words")
+
+plot_top_words_by_topic <- function(dataset, top_n = 20) {
+  
+  # Custom stopwords
+  custom_stopwords <- c("5", "gt", "https", "time", "1", "it’s", "wiki", "i’m", "I’m")
+  all_stopwords <- stop_words %>%
+    bind_rows(tibble(word = custom_stopwords, lexicon = "custom")) %>%
+    distinct(word)
+  
+  # Filter groups
+  comments_only_trump <- dataset %>%
+    filter(str_detect(post_title, regex("trump", ignore_case = TRUE)) &
+             !str_detect(post_title, regex("zelensky", ignore_case = TRUE)))
+  
+  comments_only_zelensky <- dataset %>%
+    filter(str_detect(post_title, regex("zelensky", ignore_case = TRUE)) &
+             !str_detect(post_title, regex("trump", ignore_case = TRUE)))
+  
+  comments_both <- dataset %>%
+    filter(str_detect(post_title, regex("trump", ignore_case = TRUE)) &
+             str_detect(post_title, regex("zelensky", ignore_case = TRUE)))
+  
+  # Tokenize and count
+  words_trump <- comments_only_trump %>%
+    select(comment_body) %>%
+    unnest_tokens(word, comment_body) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Trump only")
+  
+  words_zelensky <- comments_only_zelensky %>%
+    select(comment_body) %>%
+    unnest_tokens(word, comment_body) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Zelensky only")
+  
+  words_both <- comments_both %>%
+    select(comment_body) %>%
+    unnest_tokens(word, comment_body) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Both")
+  
+  top_words_all <- bind_rows(words_trump, words_zelensky, words_both)
+  
+  # Plot for Trump and Zelensky only
+  plot_limited <- top_words_all %>%
+    filter(group %in% c("Trump only", "Zelensky only")) %>%
+    group_by(group) %>%
+    slice_max(n, n = top_n) %>%
+    ungroup() %>%
+    ggplot(aes(x = reorder_within(word, n, group), y = n, fill = group)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~ group, scales = "free_y") +
+    scale_x_reordered() +
+    coord_flip() +
+    labs(
+      title = paste("Top", top_n, "Words in Trump-Only and Zelensky-Only Posts"),
+      x = "Word",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  
+  # Plot for posts mentioning both Trump and Zelensky
+  plot_both <- top_words_all %>%
+    filter(group == "Both") %>%
+    slice_max(n, n = top_n) %>%
+    ggplot(aes(x = reorder(word, n), y = n)) +
+    geom_col(fill = "gray40") +
+    coord_flip() +
+    labs(
+      title = paste("Top", top_n, "Words in Comments on Posts Mentioning Both Trump and Zelensky"),
+      x = "Word",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  
+  # Return both plots as a named list
+  return(list(
+    trump_zelensky_plot = plot_limited,
+    both_plot = plot_both
+  ))
+}
+```
+
+
+```{r}
+plot_top_words_by_topic(data_new)
+```
+```{r}
+plot_top_words_by_topic(data_pag)
+```
