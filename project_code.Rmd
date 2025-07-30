@@ -3,126 +3,229 @@ title: "CSS code"
 author: "Elisa Negrini"
 date: "2025-07-28"
 output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Data ingestion
+## Load datasets
 
 ```{r}
 library(readr)
 data_new <- readr::read_csv("C:\\Users\\utente\\Desktop\\UNITN\\Computational social science\\paper CSS\\reddit_comments_expanded_new.csv")
 data_pag <- readr::read_csv("C:\\Users\\utente\\Desktop\\UNITN\\Computational social science\\paper CSS\\reddit_comments_expanded_paginated.csv")
+
+data_trump_new <- readr::read_csv("trump_new.csv")
+data_trump_rel <- readr::read_csv("trump_rel.csv")
+data_trump_zelensky_new <- read_csv("trump_zelensky_new.csv")
+data_trump_zelensky_rel <- read_csv("trump_zelensky_rel.csv")
+data_war_ukraine_new <- read_csv("war_ukraine_new.csv")
+data_war_ukraine_rel <- read_csv("war_ukraine_rel.csv")
+data_youtube_zelensky_trump_comments_only <- read_csv("youtube_zelensky_trump_comments_only.csv")
+data_youtube_zelensky_trump_data <- read_csv("youtube_zelensky_trump_data.csv")
+data_youtube_zelensky_trump_video_summary <- read_csv("youtube_zelensky_trump_video_summary.csv")
+data_zelensky_new <- read_csv("zelensky_new.csv")
+data_zelensky_rel <- read_csv("zelensky_rel.csv")
+
 ```
+
 Variabili dei dataset:
+
 ```{r}
 names(data_new)
 ```
+
 ## Exploratory analysis
 
 ### Users activity
+
 Function to visualize the activity (by post or comments) over time:
+
 ```{r}
-library(tidyverse)
+library(dplyr)
 library(lubridate)
+library(ggplot2)
 library(patchwork)
-plot_activity_over_time <- function(dataset) {
+
+plot_activity_over_time <- function(dataset, source = "reddit") {
+  
   # Automatically get the variable name as string
   dataset_name <- deparse(substitute(dataset))
   
-  # 1. Ensure datetime conversion
-  dataset <- dataset %>%
-    mutate(
-      comment_created = ymd_hms(comment_created_utc),
-      post_created = ymd_hms(post_created_utc)
-    )
+  if (source == "reddit") {
+    dataset <- dataset %>%
+      mutate(
+        comment_created = ymd_hms(comment_created_utc),
+        post_created = ymd_hms(post_created_utc)
+      )
+    
+    # Count comments per day
+    comments_per_day <- dataset %>%
+      mutate(date = as_date(comment_created)) %>%
+      count(date, name = "count")
+    
+    # Count posts per day
+    posts_per_day <- dataset %>%
+      mutate(date = as_date(post_created)) %>%
+      count(date, name = "count")
+    
+    # Plots
+    p_comments <- ggplot(comments_per_day, aes(x = date, y = count)) +
+      geom_line(color = "steelblue") +
+      labs(
+        title = paste("Comments Over Time -", dataset_name),
+        x = "Date",
+        y = "Number of Comments"
+      ) +
+      theme_minimal()
+    
+    p_posts <- ggplot(posts_per_day, aes(x = date, y = count)) +
+      geom_line(color = "darkred") +
+      labs(
+        title = paste("Posts Over Time -", dataset_name),
+        x = "Date",
+        y = "Number of Posts"
+      ) +
+      theme_minimal()
+    
+  } else if (source == "youtube") {
+    dataset <- dataset %>%
+      mutate(
+        comment_created = ymd_hms(comment_published_at),
+        video_created = ymd_hms(video_published_at)
+      )
+    
+    # Count comments per day
+    comments_per_day <- dataset %>%
+      mutate(date = as_date(comment_created)) %>%
+      count(date, name = "count")
+    
+    # Count videos per day
+    videos_per_day <- dataset %>%
+      mutate(date = as_date(video_created)) %>%
+      count(date, name = "count")
+    
+    # Plots
+    p_comments <- ggplot(comments_per_day, aes(x = date, y = count)) +
+      geom_line(color = "steelblue") +
+      labs(
+        title = paste("YouTube Comments Over Time -", dataset_name),
+        x = "Date",
+        y = "Number of Comments"
+      ) +
+      theme_minimal()
+    
+    p_posts <- ggplot(videos_per_day, aes(x = date, y = count)) +
+      geom_line(color = "darkred") +
+      labs(
+        title = paste("YouTube Videos Over Time -", dataset_name),
+        x = "Date",
+        y = "Number of Videos"
+      ) +
+      theme_minimal()
+  }
   
-  # 2. Count comments per day
-  comments_per_day <- dataset %>%
-    mutate(date = as_date(comment_created)) %>%
-    count(date, name = "count")
-  
-  # 3. Count posts per day
-  posts_per_day <- dataset %>%
-    mutate(date = as_date(post_created)) %>%
-    count(date, name = "count")
-  
-  # 4. Create plots
-  p_comments <- ggplot(comments_per_day, aes(x = date, y = count)) +
-    geom_line(color = "steelblue") +
-    labs(
-      title = paste("Comments Over Time -", dataset_name),
-      x = "Date",
-      y = "Number of Comments"
-    ) +
-    theme_minimal()
-  
-  p_posts <- ggplot(posts_per_day, aes(x = date, y = count)) +
-    geom_line(color = "darkred") +
-    labs(
-      title = paste("Posts Over Time -", dataset_name),
-      x = "Date",
-      y = "Number of Posts"
-    ) +
-    theme_minimal()
-  
-  # 5. Combine plots
+  # Combine plots vertically
   return(p_comments / p_posts + plot_layout(heights = c(1, 1)))
 }
 
 ```
 
 Used on data_new dataset
+
 ```{r}
 plot_activity_over_time(data_new)
 ```
+
 Used on data_pag dataset:
+
 ```{r}
 plot_activity_over_time(data_pag)
 ```
 
-To visualize the distribution on comments per post for both dataset the boxplots are shown:
 ```{r}
-# 1. Count comments per post for each dataset
-comments_per_post_new <- data_new %>%
-  group_by(post_id) %>%
-  summarise(n_comments = n(), .groups = "drop") %>%
-  mutate(dataset = "data_new")
+plot_activity_over_time(data_trump_new)
+plot_activity_over_time(data_trump_rel)
+plot_activity_over_time(data_trump_zelensky_new)
+plot_activity_over_time(data_trump_zelensky_rel)
+plot_activity_over_time(data_war_ukraine_new)
+plot_activity_over_time(data_war_ukraine_rel)
+plot_activity_over_time(data_youtube_zelensky_trump_comments_only, source = "youtube")
+plot_activity_over_time(data_youtube_zelensky_trump_data, source = "youtube")
+#plot_activity_over_time(data_youtube_zelensky_trump_video_summary, source = "youtube")
+plot_activity_over_time(data_zelensky_new)
+plot_activity_over_time(data_zelensky_rel)
+```
 
-comments_per_post_pag <- data_pag %>%
-  group_by(post_id) %>%
-  summarise(n_comments = n(), .groups = "drop") %>%
-  mutate(dataset = "data_pag")
+To visualize the distribution on comments per post for both dataset the
+boxplots are shown:
 
-# 2. Combine the two datasets
-all_comments <- bind_rows(comments_per_post_new, comments_per_post_pag)
+```{r}
+library(dplyr)
+library(ggplot2)
+library(purrr)
 
-# 3. Create the boxplot
-ggplot(all_comments, aes(x = dataset, y = n_comments, fill = dataset)) +
-  geom_boxplot() +
-  labs(
-    title = "Number of Comments per Post by Dataset",
-    x = "Dataset",
-    y = "Number of Comments per Post"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "none")
+plot_comments_per_item <- function(..., source = "reddit") {
+  
+  datasets <- list(...)
+  dataset_names <- as.list(substitute(list(...)))[-1L] |> sapply(deparse)
+  
+  # Combine all datasets into one with dataset name
+  combined_data <- purrr::map2_dfr(datasets, dataset_names, ~ {
+    df <- .x
+    
+    if (source == "reddit") {
+      df %>%
+        group_by(post_id) %>%
+        summarise(n_comments = n(), .groups = "drop") %>%
+        mutate(dataset = .y)
+    } else {
+      df %>%
+        group_by(video_id) %>%
+        summarise(n_comments = n(), .groups = "drop") %>%
+        mutate(dataset = .y)
+    }
+  })
+  
+  # Create boxplot with tilted x-axis labels
+  ggplot(combined_data, aes(x = dataset, y = n_comments, fill = dataset)) +
+    geom_boxplot() +
+    labs(
+      title = ifelse(source == "reddit",
+                     "Number of Comments per Post by Dataset",
+                     "Number of Comments per Video by Dataset"),
+      x = "Dataset",
+      y = "Number of Comments"
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+}
 
+
+plot_comments_per_item(data_trump_new, data_trump_rel, data_zelensky_new, data_zelensky_rel, data_trump_zelensky_new, data_trump_zelensky_rel, data_new, data_pag, data_war_ukraine_new, data_war_ukraine_rel)
+plot_comments_per_item(data_youtube_zelensky_trump_comments_only, data_youtube_zelensky_trump_data, source = "youtube")
 ```
 
 ### Frequent words
 
-The most frequent words in the comments are visualized across three distinct groups:
+ON REDDIT The most frequent words in the comments are visualized across
+three distinct groups:
 
-1. comments on posts that mention "trump" only,
+1.  comments on posts that mention "trump" only,
 
-2. comments on posts that mention "zelensky" only, and
+2.  comments on posts that mention "zelensky" only, and
 
-3. comments on posts that mention both "trump" and "zelensky".
+3.  comments on posts that mention both "trump" and "zelensky".
 
 (it is possible to select words that should be omitted in the plots)
+
 ```{r}
 library(tidyverse)
 library(tidytext)
@@ -130,13 +233,14 @@ library(tidytext)
 data("stop_words")
 
 plot_top_words_by_topic <- function(dataset, top_n = 20) {
+  dataset_name <- deparse(substitute(dataset))
   
   # Custom stopwords
   custom_stopwords <- c("5", "gt", "https", "time", "1", "it’s", "wiki", "i’m", "I’m")
   all_stopwords <- stop_words %>%
     bind_rows(tibble(word = custom_stopwords, lexicon = "custom")) %>%
     distinct(word)
-  
+
   # Filter groups
   comments_only_trump <- dataset %>%
     filter(str_detect(post_title, regex("trump", ignore_case = TRUE)) &
@@ -186,7 +290,7 @@ plot_top_words_by_topic <- function(dataset, top_n = 20) {
     scale_x_reordered() +
     coord_flip() +
     labs(
-      title = paste("Top", top_n, "Words in Trump-Only and Zelensky-Only Posts"),
+      title = paste("Top", top_n, "Words in Trump-Only and Zelensky-Only Posts -", dataset_name),
       x = "Word",
       y = "Frequency"
     ) +
@@ -200,7 +304,7 @@ plot_top_words_by_topic <- function(dataset, top_n = 20) {
     geom_col(fill = "gray40") +
     coord_flip() +
     labs(
-      title = paste("Top", top_n, "Words in Comments on Posts Mentioning Both Trump and Zelensky"),
+      title = paste("Top", top_n, "Words in Comments on Posts Mentioning Both Trump and Zelensky -", dataset_name),
       x = "Word",
       y = "Frequency"
     ) +
@@ -214,10 +318,183 @@ plot_top_words_by_topic <- function(dataset, top_n = 20) {
 }
 ```
 
-
 ```{r}
 plot_top_words_by_topic(data_new)
-```
-```{r}
 plot_top_words_by_topic(data_pag)
+plot_top_words_by_topic(data_trump_new)
+plot_top_words_by_topic(data_trump_rel)
+plot_top_words_by_topic(data_zelensky_new)
+plot_top_words_by_topic(data_zelensky_rel)
+plot_top_words_by_topic(data_trump_zelensky_new)
+plot_top_words_by_topic(data_trump_zelensky_rel)
+plot_top_words_by_topic(data_war_ukraine_new)
+plot_top_words_by_topic(data_war_ukraine_rel)
+```
+
+```{r}
+library(dplyr)
+library(purrr)
+
+merge_reddit_datasets <- function(...) {
+  # Prendi tutti i dataset passati come "..."
+  datasets <- list(...)
+  
+  # Recupera i nomi originali degli oggetti
+  dataset_names <- as.character(match.call(expand.dots = FALSE)$...)
+
+  # Funzione per aggiungere chiave univoca e nome dataset
+  create_comment_key <- function(df, source_name) {
+    df %>%
+      mutate(
+        comment_key = paste(post_id, comment_author, comment_body, sep = "_"),
+        source_dataset = source_name
+      )
+  }
+  
+  # Aggiungo colonna source e chiave
+  datasets_tagged <- map2(datasets, dataset_names, create_comment_key)
+  
+  # Dataset iniziale
+  merged <- datasets_tagged[[1]]
+  
+  # Itera sui dataset successivi
+  for (i in 2:length(datasets_tagged)) {
+    current <- datasets_tagged[[i]]
+    
+    # Filtra solo commenti nuovi
+    new_comments <- current %>%
+      filter(!(comment_key %in% merged$comment_key))
+    
+    merged <- bind_rows(merged, new_comments)
+  }
+  
+  # Rimuovo la chiave temporanea
+  merged <- merged %>% select(-comment_key)
+  
+  return(merged)
+}
+
+# 🔹 Esempio di utilizzo automatico
+data_merged_reddit <- merge_reddit_datasets(
+  data_new,
+  data_pag,
+  data_trump_new,
+  data_trump_rel,
+  data_trump_zelensky_new,
+  data_trump_zelensky_rel,
+  data_war_ukraine_new,
+  data_war_ukraine_rel,
+  data_zelensky_new,
+  data_zelensky_rel
+)
+
+```
+
+data_new: n = 19241 data_pag: n = 33600 data_new + data_pag: n = 34692
+
+data_trump_new: n = 17896 data_trump_rel: n = 120171 data_trump_new +
+data_trump_rel: n = 133778
+
+data_trump_zelensky_new: n = 19238 data_trump_zelensky_rel: n = 33595
+data_trump_zelensky_new + data_trump_zelensky_rel: n = 34685
+
+data_zelensky_new: n = 18622 data_zelensky_rel: n = 41898
+data_zelensky_new + data_zelensky_rel: n = 44033
+
+merge reddit completo: n = 219913
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+plot_post_comment_scores <- function(dataset, dataset_name = "Dataset") {
+  
+  post_scores <- dataset %>%
+    distinct(post_id, post_score, post_title)
+  
+  p_posts <- ggplot(post_scores, aes(x = post_score)) +
+    geom_histogram(binwidth = 1, fill = "darkred", color = "black") +
+    labs(
+      title = paste("Distribution of Post Scores -", dataset_name),
+      x = "Post Score",
+      y = "Number of Posts"
+    ) +
+    theme_minimal()
+  
+  p_comments <- ggplot(dataset, aes(x = comment_score)) +
+    geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+    labs(
+      title = paste("Distribution of Comment Scores -", dataset_name),
+      x = "Comment Score",
+      y = "Number of Comments"
+    ) +
+    theme_minimal()
+  
+  return(p_posts / p_comments)
+}
+
+```
+
+```{r}
+plot_post_comment_scores(data_merged_reddit, "Reddit Merged")
+```
+
+```{r}
+library(dplyr)
+
+# filter on the post score and comment score
+filtered_data <- data_merged_reddit %>%
+  filter(post_score > 3, comment_score > 3)
+
+# remove comments that were removed
+filtered_data <- filtered_data %>%
+  filter(comment_body != "[removed]")
+
+# Check the dimensions of the filtered dataset
+dim(filtered_data)
+```
+
+```{r}
+plot_post_comment_scores(filtered_data, "Filtered Reddit Merged")
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+
+# 1️⃣ Categorizziamo i post unici
+post_categories <- merged_reddit %>%
+  distinct(post_id, post_title) %>%
+  mutate(
+    title_lower = tolower(post_title),
+    has_trump = str_detect(title_lower, "\\btrump\\b"),
+    has_zelensky = str_detect(title_lower, "\\bzelensky\\b"),
+    category = case_when(
+      has_trump & !has_zelensky ~ "Only Trump",
+      !has_trump & has_zelensky ~ "Only Zelensky",
+      has_trump & has_zelensky ~ "Both",
+      TRUE ~ "None"
+    )
+  ) %>%
+  select(post_id, category)
+
+# 2️⃣ Uniamo la categoria al dataset completo (tutti i commenti)
+merged_with_category <- merged_reddit %>%
+  left_join(post_categories, by = "post_id")
+
+# 3️⃣ Creiamo i 4 dataset completi (con commenti)
+dataset_only_trump    <- merged_with_category %>% filter(category == "Only Trump")
+dataset_only_zelensky <- merged_with_category %>% filter(category == "Only Zelensky")
+dataset_both          <- merged_with_category %>% filter(category == "Both")
+dataset_none          <- merged_with_category %>% filter(category == "None")
+
+```
+
+```{r}
+plot_activity_over_time(dataset_only_trump)
+plot_activity_over_time(dataset_only_zelensky)
+plot_activity_over_time(dataset_both)
+plot_activity_over_time(dataset_none)
+plot_activity_over_time(filtered_data)
 ```
