@@ -331,6 +331,8 @@ plot_top_words_by_topic(data_war_ukraine_new)
 plot_top_words_by_topic(data_war_ukraine_rel)
 ```
 
+
+## Merge datasets
 ```{r}
 library(dplyr)
 library(purrr)
@@ -442,17 +444,23 @@ plot_post_comment_scores(data_merged_reddit, "Reddit Merged")
 
 ```{r}
 library(dplyr)
+library(lubridate)
 
-# filter on the post score and comment score
 filtered_data <- data_merged_reddit %>%
-  filter(post_score > 3, comment_score > 3)
+  # 1️⃣ Convert timestamp to date-time if not already
+  mutate(comment_datetime = ymd_hms(comment_created_utc)) %>%
+  
+  # 2️⃣ Filter conditions
+  filter(
+    post_score > 3,
+    comment_score > 3,
+    comment_body != "[removed]",
+    comment_datetime >= ymd("2024-08-01")  # keep only comments from August 2024 onwards
+  )
 
-# remove comments that were removed
-filtered_data <- filtered_data %>%
-  filter(comment_body != "[removed]")
-
-# Check the dimensions of the filtered dataset
+# Check dimensions
 dim(filtered_data)
+
 ```
 
 ```{r}
