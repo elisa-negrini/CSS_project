@@ -16,32 +16,36 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(readr)
-data_new <- readr::read_csv("C:\\Users\\utente\\Desktop\\UNITN\\Computational social science\\paper CSS\\reddit_comments_expanded_new.csv")
-data_pag <- readr::read_csv("C:\\Users\\utente\\Desktop\\UNITN\\Computational social science\\paper CSS\\reddit_comments_expanded_paginated.csv")
+data_new <- readr::read_csv("datasets/reddit_comments_expanded_new.csv", show_col_types = FALSE)
+data_pag <- readr::read_csv("datasets/reddit_comments_expanded_paginated.csv", show_col_types = FALSE)
 
-data_trump_new <- readr::read_csv("trump_new.csv")
-data_trump_rel <- readr::read_csv("trump_rel.csv")
-data_trump_zelensky_new <- read_csv("trump_zelensky_new.csv")
-data_trump_zelensky_rel <- read_csv("trump_zelensky_rel.csv")
-data_war_ukraine_new <- read_csv("war_ukraine_new.csv")
-data_war_ukraine_rel <- read_csv("war_ukraine_rel.csv")
-data_youtube_zelensky_trump_comments_only <- read_csv("youtube_zelensky_trump_comments_only.csv")
-data_youtube_zelensky_trump_data <- read_csv("youtube_zelensky_trump_data.csv")
-data_youtube_zelensky_trump_video_summary <- read_csv("youtube_zelensky_trump_video_summary.csv")
-data_zelensky_new <- read_csv("zelensky_new.csv")
-data_zelensky_rel <- read_csv("zelensky_rel.csv")
+data_trump_new <- readr::read_csv("datasets/trump_new.csv", show_col_types = FALSE)
+data_trump_rel <- readr::read_csv("datasets/trump_rel.csv", show_col_types = FALSE)
+data_trump_zelensky_new <- read_csv("datasets/trump_zelensky_new.csv", show_col_types = FALSE)
+data_trump_zelensky_rel <- read_csv("datasets/trump_zelensky_rel.csv", show_col_types = FALSE)
+data_war_ukraine_new <- read_csv("datasets/war_ukraine_new.csv", show_col_types = FALSE)
+data_war_ukraine_rel <- read_csv("datasets/war_ukraine_rel.csv", show_col_types = FALSE)
+data_youtube_zelensky_trump_comments_only <- read_csv("datasets/youtube_zelensky_trump_comments_only.csv", show_col_types = FALSE)
+data_youtube_zelensky_trump_data <- read_csv("datasets/youtube_zelensky_trump_data.csv", show_col_types = FALSE)
+data_youtube_zelensky_trump_video_summary <- read_csv("datasets/youtube_zelensky_trump_video_summary.csv", show_col_types = FALSE)
+data_zelensky_new <- read_csv("datasets/zelensky_new.csv", show_col_types = FALSE)
+data_zelensky_rel <- read_csv("datasets/zelensky_rel.csv", show_col_types = FALSE)
 
 ```
 
-Variabili dei dataset:
+Variables for reddit datasets:
 
 ```{r}
 names(data_new)
 ```
+Variables for youtube datasets.
+```{r}
+names(data_youtube_zelensky_trump_comments_only)
+```
 
 ## Exploratory analysis
 
-### Users activity
+### Check users activity (posts + comments)
 
 Function to visualize the activity (by post or comments) over time:
 
@@ -53,7 +57,6 @@ library(patchwork)
 
 plot_activity_over_time <- function(dataset, source = "reddit") {
   
-  # Automatically get the variable name as string
   dataset_name <- deparse(substitute(dataset))
   
   if (source == "reddit") {
@@ -128,26 +131,13 @@ plot_activity_over_time <- function(dataset, source = "reddit") {
       ) +
       theme_minimal()
   }
-  
-  # Combine plots vertically
   return(p_comments / p_posts + plot_layout(heights = c(1, 1)))
 }
-
 ```
-
-Used on data_new dataset
 
 ```{r}
 plot_activity_over_time(data_new)
-```
-
-Used on data_pag dataset:
-
-```{r}
 plot_activity_over_time(data_pag)
-```
-
-```{r}
 plot_activity_over_time(data_trump_new)
 plot_activity_over_time(data_trump_rel)
 plot_activity_over_time(data_trump_zelensky_new)
@@ -156,7 +146,6 @@ plot_activity_over_time(data_war_ukraine_new)
 plot_activity_over_time(data_war_ukraine_rel)
 plot_activity_over_time(data_youtube_zelensky_trump_comments_only, source = "youtube")
 plot_activity_over_time(data_youtube_zelensky_trump_data, source = "youtube")
-#plot_activity_over_time(data_youtube_zelensky_trump_video_summary, source = "youtube")
 plot_activity_over_time(data_zelensky_new)
 plot_activity_over_time(data_zelensky_rel)
 ```
@@ -174,7 +163,6 @@ plot_comments_per_item <- function(..., source = "reddit") {
   datasets <- list(...)
   dataset_names <- as.list(substitute(list(...)))[-1L] |> sapply(deparse)
   
-  # Combine all datasets into one with dataset name
   combined_data <- purrr::map2_dfr(datasets, dataset_names, ~ {
     df <- .x
     
@@ -191,7 +179,6 @@ plot_comments_per_item <- function(..., source = "reddit") {
     }
   })
   
-  # Create boxplot with tilted x-axis labels
   ggplot(combined_data, aes(x = dataset, y = n_comments, fill = dataset)) +
     geom_boxplot() +
     labs(
@@ -331,20 +318,119 @@ plot_top_words_by_topic(data_war_ukraine_new)
 plot_top_words_by_topic(data_war_ukraine_rel)
 ```
 
+### Same function for youtube
+```{r}
+library(tidyverse)
+library(tidytext)
+
+data("stop_words")
+
+plot_top_words_by_topic_youtube <- function(dataset, top_n = 20) {
+  dataset_name <- deparse(substitute(dataset))
+  
+  # 1️⃣ Custom stopwords
+  custom_stopwords <- c("5", "gt", "https", "time", "1", "it’s", "wiki", "i’m", "I’m")
+  all_stopwords <- stop_words %>%
+    bind_rows(tibble(word = custom_stopwords, lexicon = "custom")) %>%
+    distinct(word)
+  
+  # 2️⃣ Basic cleaning: remove empty or short comments
+  dataset_clean <- dataset %>%
+    filter(!is.na(comment_text), str_length(comment_text) > 2)
+  
+  # 3️⃣ Split into topic groups based on video_title
+  comments_only_trump <- dataset_clean %>%
+    filter(str_detect(video_title, regex("\\btrump\\b", ignore_case = TRUE)) &
+             !str_detect(video_title, regex("\\bzelensky\\b", ignore_case = TRUE)))
+  
+  comments_only_zelensky <- dataset_clean %>%
+    filter(str_detect(video_title, regex("\\bzelensky\\b", ignore_case = TRUE)) &
+             !str_detect(video_title, regex("\\btrump\\b", ignore_case = TRUE)))
+  
+  comments_both <- dataset_clean %>%
+    filter(str_detect(video_title, regex("\\btrump\\b", ignore_case = TRUE)) &
+             str_detect(video_title, regex("\\bzelensky\\b", ignore_case = TRUE)))
+  
+  # 4️⃣ Tokenize and count words for each group
+  words_trump <- comments_only_trump %>%
+    select(comment_text) %>%
+    unnest_tokens(word, comment_text) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Trump only")
+  
+  words_zelensky <- comments_only_zelensky %>%
+    select(comment_text) %>%
+    unnest_tokens(word, comment_text) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Zelensky only")
+  
+  words_both <- comments_both %>%
+    select(comment_text) %>%
+    unnest_tokens(word, comment_text) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Both")
+  
+  top_words_all <- bind_rows(words_trump, words_zelensky, words_both)
+  
+  # 5️⃣ Plot for Trump and Zelensky only
+  plot_limited <- top_words_all %>%
+    filter(group %in% c("Trump only", "Zelensky only")) %>%
+    group_by(group) %>%
+    slice_max(n, n = top_n) %>%
+    ungroup() %>%
+    ggplot(aes(x = reorder_within(word, n, group), y = n, fill = group)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~ group, scales = "free_y") +
+    scale_x_reordered() +
+    coord_flip() +
+    labs(
+      title = paste("Top", top_n, "Words in Trump-Only and Zelensky-Only YouTube Videos -", dataset_name),
+      x = "Word",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  
+  # 6️⃣ Plot for videos mentioning both
+  plot_both <- top_words_all %>%
+    filter(group == "Both") %>%
+    slice_max(n, n = top_n) %>%
+    ggplot(aes(x = reorder(word, n), y = n)) +
+    geom_col(fill = "gray40") +
+    coord_flip() +
+    labs(
+      title = paste("Top", top_n, "Words in Comments on Videos Mentioning Both Trump and Zelensky -", dataset_name),
+      x = "Word",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  
+  return(list(
+    trump_zelensky_plot = plot_limited,
+    both_plot = plot_both
+  ))
+}
+```
+
+```{r}
+plot_top_words_by_topic_youtube(data_youtube_zelensky_trump_comments_only)
+plot_top_words_by_topic_youtube(data_youtube_zelensky_trump_data)
+```
+
 
 ## Merge datasets
+
 ```{r}
 library(dplyr)
 library(purrr)
 
 merge_reddit_datasets <- function(...) {
-  # Prendi tutti i dataset passati come "..."
   datasets <- list(...)
   
-  # Recupera i nomi originali degli oggetti
   dataset_names <- as.character(match.call(expand.dots = FALSE)$...)
 
-  # Funzione per aggiungere chiave univoca e nome dataset
   create_comment_key <- function(df, source_name) {
     df %>%
       mutate(
@@ -353,30 +439,24 @@ merge_reddit_datasets <- function(...) {
       )
   }
   
-  # Aggiungo colonna source e chiave
   datasets_tagged <- map2(datasets, dataset_names, create_comment_key)
   
-  # Dataset iniziale
   merged <- datasets_tagged[[1]]
   
-  # Itera sui dataset successivi
   for (i in 2:length(datasets_tagged)) {
     current <- datasets_tagged[[i]]
     
-    # Filtra solo commenti nuovi
     new_comments <- current %>%
       filter(!(comment_key %in% merged$comment_key))
     
     merged <- bind_rows(merged, new_comments)
   }
   
-  # Rimuovo la chiave temporanea
   merged <- merged %>% select(-comment_key)
   
   return(merged)
 }
 
-# 🔹 Esempio di utilizzo automatico
 data_merged_reddit <- merge_reddit_datasets(
   data_new,
   data_pag,
@@ -389,8 +469,9 @@ data_merged_reddit <- merge_reddit_datasets(
   data_zelensky_new,
   data_zelensky_rel
 )
-
 ```
+
+Some examples of the size of merged datasets:
 
 data_new: n = 19241 data_pag: n = 33600 data_new + data_pag: n = 34692
 
@@ -403,7 +484,63 @@ data_trump_zelensky_new + data_trump_zelensky_rel: n = 34685
 data_zelensky_new: n = 18622 data_zelensky_rel: n = 41898
 data_zelensky_new + data_zelensky_rel: n = 44033
 
-merge reddit completo: n = 219913
+***data_merged_reddit: n = 219913***
+
+### Dataset merged for youtube
+```{r}
+library(dplyr)
+library(purrr)
+
+merge_youtube_datasets <- function(...) {
+  datasets <- list(...)
+  
+  # Get dataset names for tracking source
+  dataset_names <- as.character(match.call(expand.dots = FALSE)$...)
+  
+  # Function to create unique comment key for YouTube
+  create_comment_key <- function(df, source_name) {
+    df %>%
+      mutate(
+        comment_key = paste(video_id, comment_author, comment_text, sep = "_"),
+        source_dataset = source_name
+      )
+  }
+  
+  # Apply key creation to all datasets
+  datasets_tagged <- map2(datasets, dataset_names, create_comment_key)
+  
+  # Initialize merged dataset with the first dataset
+  merged <- datasets_tagged[[1]]
+  
+  # Sequentially merge unique comments from other datasets
+  for (i in 2:length(datasets_tagged)) {
+    current <- datasets_tagged[[i]]
+    
+    new_comments <- current %>%
+      filter(!(comment_key %in% merged$comment_key))
+    
+    merged <- bind_rows(merged, new_comments)
+  }
+  
+  # Remove the helper key
+  merged <- merged %>% select(-comment_key)
+  
+  return(merged)
+}
+
+# Example of merging YouTube datasets
+data_merged_youtube <- merge_youtube_datasets(
+  data_youtube_zelensky_trump_comments_only,
+  data_youtube_zelensky_trump_data
+)
+```
+
+```{r}
+dim(data_merged_youtube)
+```
+
+
+### Check distribution of scores for posts and comments
 
 ```{r}
 library(dplyr)
@@ -435,12 +572,13 @@ plot_post_comment_scores <- function(dataset, dataset_name = "Dataset") {
   
   return(p_posts / p_comments)
 }
-
 ```
 
 ```{r}
 plot_post_comment_scores(data_merged_reddit, "Reddit Merged")
 ```
+
+### Filter dataset on "score", "date" (+ if removed)
 
 ```{r}
 library(dplyr)
@@ -452,27 +590,74 @@ filtered_data <- data_merged_reddit %>%
   
   # 2️⃣ Filter conditions
   filter(
-    post_score > 3,
-    comment_score > 3,
+    post_score > 5,
+    comment_score > 5,
     comment_body != "[removed]",
-    comment_datetime >= ymd("2024-08-01")  # keep only comments from August 2024 onwards
+    comment_datetime >= ymd("2024-09-01")  # keep only comments from September 2024 onwards
   )
 
 # Check dimensions
 dim(filtered_data)
-
 ```
 
 ```{r}
 plot_post_comment_scores(filtered_data, "Filtered Reddit Merged")
 ```
+### Filter youtube data
+```{r}
+library(dplyr)
+library(lubridate)
+
+filtered_youtube <- data_merged_youtube %>%
+  # Convert comment timestamp to datetime
+  mutate(comment_datetime = ymd_hms(comment_published_at)) %>%
+  
+  # Filter by date
+  filter(comment_datetime >= ymd("2024-09-01"))
+
+# Check dimensions
+dim(filtered_youtube)
+
+```
+```{r}
+library(dplyr)
+library(stringr)
+
+# 1️⃣ Categorize unique videos
+video_categories <- filtered_youtube %>%
+  distinct(video_id, video_title) %>%
+  mutate(
+    title_lower = tolower(video_title),
+    has_trump = str_detect(title_lower, "\\btrump\\b"),
+    has_zelensky = str_detect(title_lower, "\\bzelensky\\b"),
+    category = case_when(
+      has_trump & !has_zelensky ~ "Only Trump",
+      !has_trump & has_zelensky ~ "Only Zelensky",
+      has_trump & has_zelensky ~ "Both",
+      TRUE ~ "None"
+    )
+  ) %>%
+  select(video_id, category)
+
+# 2️⃣ Join the category with the full dataset (all comments)
+merged_yt_with_category <- filtered_youtube %>%
+  left_join(video_categories, by = "video_id")
+
+# 3️⃣ Create the 4 complete datasets (with comments)
+yt_dataset_only_trump    <- merged_yt_with_category %>% filter(category == "Only Trump")
+yt_dataset_only_zelensky <- merged_yt_with_category %>% filter(category == "Only Zelensky")
+yt_dataset_both          <- merged_yt_with_category %>% filter(category == "Both")
+yt_dataset_none          <- merged_yt_with_category %>% filter(category == "None")
+
+```
+
 
 ```{r}
 library(dplyr)
 library(stringr)
 
-# 1️⃣ Categorizziamo i post unici
-post_categories <- merged_reddit %>%
+# 1️⃣ Categorize unique posts
+post_categories <- filtered_data %>%
   distinct(post_id, post_title) %>%
   mutate(
     title_lower = tolower(post_title),
@@ -487,16 +672,22 @@ post_categories <- merged_reddit %>%
   ) %>%
   select(post_id, category)
 
-# 2️⃣ Uniamo la categoria al dataset completo (tutti i commenti)
-merged_with_category <- merged_reddit %>%
+# 2️⃣ Join the category with the full dataset (all comments)
+merged_with_category <- filtered_data %>%
   left_join(post_categories, by = "post_id")
 
-# 3️⃣ Creiamo i 4 dataset completi (con commenti)
+# 3️⃣ Create the 4 complete datasets (with comments)
 dataset_only_trump    <- merged_with_category %>% filter(category == "Only Trump")
 dataset_only_zelensky <- merged_with_category %>% filter(category == "Only Zelensky")
 dataset_both          <- merged_with_category %>% filter(category == "Both")
 dataset_none          <- merged_with_category %>% filter(category == "None")
+```
 
+```{r}
+dim(dataset_only_trump)
+dim(dataset_only_zelensky)
+dim(dataset_both)
+dim(dataset_none)
 ```
 
 ```{r}
@@ -506,3 +697,267 @@ plot_activity_over_time(dataset_both)
 plot_activity_over_time(dataset_none)
 plot_activity_over_time(filtered_data)
 ```
+
+```{r}
+library(dplyr)
+library(stringr)
+library(lubridate)
+library(sentimentr)
+library(ggplot2)
+
+# 1️⃣ Label each comment with the sentiment target
+comments_labeled <- merged_with_category %>%
+  mutate(
+    comment_lower = tolower(comment_body),
+    mentions_trump    = str_detect(comment_lower, "\\btrump\\b"),
+    mentions_zelensky = str_detect(comment_lower, "\\bzelensky\\b"),
+    sentiment_target = case_when(
+      category == "Only Trump" ~ "Trump",
+      category == "Only Zelensky" ~ "Zelensky",
+      mentions_trump & !mentions_zelensky ~ "Trump",
+      !mentions_trump & mentions_zelensky ~ "Zelensky",
+      mentions_trump & mentions_zelensky ~ "Mixed",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(sentiment_target))  # Keep only comments with a clear target
+
+# 2️⃣ Compute sentiment for each comment and aggregate by comment
+sentiment_scores <- sentiment(comments_labeled$comment_body) %>%
+  group_by(element_id) %>%
+  summarise(sentiment = mean(sentiment, na.rm = TRUE), .groups = "drop")
+
+# 3️⃣ Add sentiment scores back to the dataset
+comments_with_sentiment <- comments_labeled %>%
+  mutate(row_id = row_number()) %>%
+  left_join(
+    sentiment_scores,
+    by = c("row_id" = "element_id")
+  )
+
+# 4️⃣ Aggregate sentiment by day and target
+daily_sentiment <- comments_with_sentiment %>%
+  mutate(date = as_date(comment_created_utc)) %>%
+  group_by(date, sentiment_target) %>%
+  summarise(
+    mean_sentiment = mean(sentiment, na.rm = TRUE),
+    n_comments = n(),
+    .groups = "drop"
+  )
+
+weighted_daily_sentiment <- comments_with_sentiment %>%
+  mutate(
+    date = as_date(comment_created_utc),
+    weight = log1p(comment_score) + log1p(post_score)
+  ) %>%
+  group_by(date, sentiment_target) %>%
+  summarise(
+    weighted_mean_sentiment = weighted.mean(sentiment, w = weight, na.rm = TRUE),
+    total_comments = n(),
+    .groups = "drop"
+  )
+
+
+# 5️⃣ Plot daily sentiment trends
+ggplot(daily_sentiment, aes(x = date, y = mean_sentiment, color = sentiment_target)) +
+  geom_line() +
+  geom_point(size = 0.8) +
+  labs(
+    title = "Daily Sentiment Over Time",
+    x = "Date",
+    y = "Average Sentiment",
+    color = "Target"
+  ) +
+  theme_minimal()
+
+# same but for weighted sentiment
+ggplot(weighted_daily_sentiment, aes(x = date, y = weighted_mean_sentiment, color = sentiment_target)) +
+  geom_line() +
+  geom_point(size = 0.8) +
+  labs(
+    title = "Daily Sentiment Over Time",
+    x = "Date",
+    y = "Average Sentiment",
+    color = "Target"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+library(lubridate)
+library(sentimentr)
+library(ggplot2)
+
+# 1️⃣ Label each comment with the sentiment target
+yt_comments_labeled <- merged_yt_with_category %>%
+  mutate(
+    comment_lower = tolower(comment_text),
+    mentions_trump    = str_detect(comment_lower, "\\btrump\\b"),
+    mentions_zelensky = str_detect(comment_lower, "\\bzelensky\\b"),
+    sentiment_target = case_when(
+      category == "Only Trump" ~ "Trump",
+      category == "Only Zelensky" ~ "Zelensky",
+      mentions_trump & !mentions_zelensky ~ "Trump",
+      !mentions_trump & mentions_zelensky ~ "Zelensky",
+      mentions_trump & mentions_zelensky ~ "Mixed",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(sentiment_target))  # Keep only comments with a clear target
+
+# 2️⃣ Compute sentiment for each comment and aggregate by comment
+yt_sentiment_scores <- sentiment(yt_comments_labeled$comment_text) %>%
+  group_by(element_id) %>%
+  summarise(sentiment = mean(sentiment, na.rm = TRUE), .groups = "drop")
+
+# 3️⃣ Add sentiment scores back to the dataset
+yt_comments_with_sentiment <- yt_comments_labeled %>%
+  mutate(row_id = row_number()) %>%
+  left_join(
+    yt_sentiment_scores,
+    by = c("row_id" = "element_id")
+  )
+
+# 4️⃣ Aggregate sentiment by day and target
+yt_daily_sentiment <- yt_comments_with_sentiment %>%
+  mutate(date = as_date(comment_published_at)) %>%
+  group_by(date, sentiment_target) %>%
+  summarise(
+    mean_sentiment = mean(sentiment, na.rm = TRUE),
+    n_comments = n(),
+    .groups = "drop"
+  )
+
+# 5️⃣ Plot daily sentiment trends
+ggplot(yt_daily_sentiment, aes(x = date, y = mean_sentiment, color = sentiment_target)) +
+  geom_line() +
+  geom_point(size = 0.8) +
+  labs(
+    title = "Daily Sentiment Over Time (YouTube)",
+    x = "Date",
+    y = "Average Sentiment",
+    color = "Target"
+  ) +
+  theme_minimal()
+
+```
+
+## Analysis of sentiment with respect to war
+
+### Reddit
+```{r}
+library(dplyr)
+library(stringr)
+library(lubridate)
+library(sentimentr)
+library(ggplot2)
+
+# 1️⃣ Definisci le parole chiave sulla guerra in Ucraina
+ukraine_war_keywords <- c(
+  "ukraine", "ucraina", "russia", "putin", "moscow", "mosca",
+  "kyiv", "kiev", "donbas", "donbass", "crimea",
+  "invasion", "invad", "war", "guerra", "frontline",
+  "nato", "zelensky", "kremlin"
+)
+
+# 2️⃣ Seleziona i commenti che parlano di guerra in Ucraina
+comments_war_ukraine <- filtered_data %>%
+  mutate(
+    comment_lower = tolower(comment_body),
+    n_keywords_found = str_count(comment_lower, paste(ukraine_war_keywords, collapse = "|"))
+  ) %>%
+  filter(n_keywords_found >= 2)
+
+# 3️⃣ Calcola il sentiment per ciascun commento
+sentiment_scores_war <- sentiment(comments_war_ukraine$comment_body) %>%
+  group_by(element_id) %>%
+  summarise(sentiment = mean(sentiment, na.rm = TRUE), .groups = "drop")
+
+# 4️⃣ Aggiungi sentiment al dataset
+comments_war_ukraine_sentiment <- comments_war_ukraine %>%
+  mutate(row_id = row_number()) %>%
+  left_join(sentiment_scores_war, by = c("row_id" = "element_id"))
+
+# 5️⃣ Calcola la media giornaliera del sentiment
+daily_war_sentiment <- comments_war_ukraine_sentiment %>%
+  mutate(date = as_date(comment_created_utc)) %>%
+  group_by(date) %>%
+  summarise(
+    mean_sentiment = mean(sentiment, na.rm = TRUE),
+    n_comments = n(),
+    .groups = "drop"
+  )
+
+# 6️⃣ Visualizza il sentiment nel tempo
+ggplot(daily_war_sentiment, aes(x = date, y = mean_sentiment)) +
+  geom_line(color = "steelblue") +
+  geom_point(size = 0.8, color = "steelblue") +
+  labs(
+    title = "Daily Sentiment on Ukraine War (Reddit)",
+    x = "Date",
+    y = "Average Sentiment"
+  ) +
+  theme_minimal()
+
+```
+
+### Youtube
+```{r}
+library(dplyr)
+library(stringr)
+library(lubridate)
+library(sentimentr)
+library(ggplot2)
+
+# 1️⃣ Define Ukraine war keywords
+ukraine_war_keywords <- c(
+  "ukraine", "ucraina", "russia", "putin", "moscow", "mosca",
+  "kyiv", "kiev", "donbas", "donbass", "crimea",
+  "invasion", "invad", "war", "guerra", "frontline",
+  "nato", "zelensky", "kremlin"
+)
+
+# 2️⃣ Filter YouTube comments that talk about the Ukraine war
+comments_war_ukraine_yt <- filtered_youtube %>%  # <-- your filtered YouTube dataset
+  mutate(
+    comment_lower = tolower(comment_text),
+    n_keywords_found = str_count(comment_lower, paste(ukraine_war_keywords, collapse = "|"))
+  ) %>%
+  filter(n_keywords_found >= 2)
+
+# 3️⃣ Compute sentiment for each comment
+sentiment_scores_war_yt <- sentiment(comments_war_ukraine_yt$comment_text) %>%
+  group_by(element_id) %>%
+  summarise(sentiment = mean(sentiment, na.rm = TRUE), .groups = "drop")
+
+# 4️⃣ Add sentiment scores back to the dataset
+comments_war_ukraine_sentiment_yt <- comments_war_ukraine_yt %>%
+  mutate(row_id = row_number()) %>%
+  left_join(sentiment_scores_war_yt, by = c("row_id" = "element_id"))
+
+# 5️⃣ Compute daily average sentiment
+daily_war_sentiment_yt <- comments_war_ukraine_sentiment_yt %>%
+  mutate(date = as_date(comment_published_at)) %>%  # <-- use the comment timestamp
+  group_by(date) %>%
+  summarise(
+    mean_sentiment = mean(sentiment, na.rm = TRUE),
+    n_comments = n(),
+    .groups = "drop"
+  )
+
+# 6️⃣ Plot daily sentiment trend
+ggplot(daily_war_sentiment_yt, aes(x = date, y = mean_sentiment)) +
+  geom_line(color = "darkred") +
+  geom_point(size = 0.8, color = "darkred") +
+  labs(
+    title = "Daily Sentiment on Ukraine War (YouTube)",
+    x = "Date",
+    y = "Average Sentiment"
+  ) +
+  theme_minimal()
+
+```
+
