@@ -36,30 +36,36 @@ data_zelensky_rel <- read_csv("datasets/zelensky_rel.csv", show_col_types = FALS
 LOADING NUOVO
 ```{r}
 library(readr)
+
+#reddit
 data_putin_new_p <- readr::read_csv("dati/putin_new_p.csv", show_col_types = FALSE)
 data_putin_new_u <- readr::read_csv("dati/putin_new_u.csv", show_col_types = FALSE)
 data_putin_new_wn <- readr::read_csv("dati/putin_new_wn.csv", show_col_types = FALSE)
 data_putin_rel_p <- readr::read_csv("dati/putin_rel_p.csv", show_col_types = FALSE)
 data_putin_rel_u <- readr::read_csv("dati/putin_rel_u.csv", show_col_types = FALSE)
 data_putin_rel_wn <- readr::read_csv("dati/putin_rel_wn.csv", show_col_types = FALSE)
+
 data_russian_inv_new_p <- readr::read_csv("dati/russian_invasion_new_p.csv", show_col_types = FALSE)
 data_russian_inv_new_u <- readr::read_csv("dati/russian_invasion_new_u.csv", show_col_types = FALSE)
 data_russian_inv_new_wn <- readr::read_csv("dati/russian_invasion_new_wn.csv", show_col_types = FALSE)
-#data_russian_inv_rel_p <- readr::read_csv("dati/russian_invasion_rel_p.csv", show_col_types = FALSE)
+data_russian_inv_rel_p <- readr::read_csv("dati/russian_invasion_rel_p.csv", show_col_types = FALSE)
 data_russian_inv_rel_u <- readr::read_csv("dati/russian_invasion_rel_u.csv", show_col_types = FALSE)
 data_russian_inv_rel_wn <- readr::read_csv("dati/russian_invasion_rel_wn.csv", show_col_types = FALSE)
+
 data_trump_new_p <- readr::read_csv("dati/trump_new_p.csv", show_col_types = FALSE)
 data_trump_new_u <- readr::read_csv("dati/trump_new_u.csv", show_col_types = FALSE)
 data_trump_new_wn <- readr::read_csv("dati/trump_new_wn.csv", show_col_types = FALSE)
 data_trump_rel_p <- readr::read_csv("dati/trump_rel_p.csv", show_col_types = FALSE)
 data_trump_rel_u <- readr::read_csv("dati/trump_rel_u.csv", show_col_types = FALSE)
 data_trump_rel_wn <- readr::read_csv("dati/trump_rel_wn.csv", show_col_types = FALSE)
+
 data_trump_zelensky_new_p <- readr::read_csv("dati/trump_zelensky_new_p.csv", show_col_types = FALSE)
 data_trump_zelensky_new_u <- readr::read_csv("dati/trump_zelensky_new_u.csv", show_col_types = FALSE)
 data_trump_zelensky_new_wn <- readr::read_csv("dati/trump_zelensky_new_wn.csv", show_col_types = FALSE)
 data_trump_zelensky_rel_p <- readr::read_csv("dati/trump_zelensky_rel_p.csv", show_col_types = FALSE)
 data_trump_zelensky_rel_u <- readr::read_csv("dati/trump_zelensky_rel_u.csv", show_col_types = FALSE)
 data_trump_zelensky_rel_wn <- readr::read_csv("dati/trump_zelensky_rel_wn.csv", show_col_types = FALSE)
+
 data_war_ukraine_new_p <- readr::read_csv("dati/war_ukraine_new_p.csv", show_col_types = FALSE)
 data_war_ukraine_new_u <- readr::read_csv("dati/war_ukraine_new_u.csv", show_col_types = FALSE)
 data_war_ukraine_new_wn <- readr::read_csv("dati/war_ukraine_new_wn.csv", show_col_types = FALSE)
@@ -70,16 +76,15 @@ data_war_ukraine_rel_wn <- readr::read_csv("dati/war_ukraine_rel_wn.csv", show_c
 data_zelensky_new_p <- readr::read_csv("dati/zelensky_new_p.csv", show_col_types = FALSE)
 data_zelensky_new_u <- readr::read_csv("dati/zelensky_new_u.csv", show_col_types = FALSE)
 data_zelensky_new_wn <- readr::read_csv("dati/zelensky_new_wn.csv", show_col_types = FALSE)
-
 data_zelensky_rel_p <- readr::read_csv("dati/zelensky_rel_p.csv", show_col_types = FALSE)
 data_zelensky_rel_u <- readr::read_csv("dati/zelensky_rel_u.csv", show_col_types = FALSE)
 data_zelensky_rel_wn <- readr::read_csv("dati/zelensky_rel_wn.csv", show_col_types = FALSE)
 
+# youtube
 data_yt_war_ukraine1 <- readr::read_csv("dati/youtube_war_ukraine_data_1.csv", show_col_types = FALSE)
 data_yt_war_ukraine2 <- readr::read_csv("dati/youtube_war_ukraine_data_2.csv", show_col_types = FALSE)
 data_yt_war_ukraine1_comm <- readr::read_csv("dati/youtube_war_ukraine_comments_only_1.csv", show_col_types = FALSE)
 data_yt_war_ukraine2_comm <- readr::read_csv("dati/youtube_war_ukraine_comments_only_2.csv", show_col_types = FALSE)
-
 data_yt_zelensky_trump1 <- readr::read_csv("dati/youtube_zelensky_trump_data_1.csv", show_col_types = FALSE)
 data_yt_zelensky_trump2 <- readr::read_csv("dati/youtube_zelensky_trump_data_2.csv", show_col_types = FALSE)
 data_yt_zelensky_trump1_comm <- readr::read_csv("dati/youtube_zelensky_trump_comments_only_1.csv", show_col_types = FALSE)
@@ -96,7 +101,7 @@ Variables for youtube datasets.
 names(data_youtube_zelensky_trump_comments_only)
 ```
 
-## Exploratory analysis
+## Exploratory analysis OLD
 
 ### 1. on separated datasets
 
@@ -475,6 +480,468 @@ plot_top_words_by_topic_youtube(data_youtube_zelensky_trump_data)
 ```
 
 
+
+
+## Exploratory analysis NEW
+
+### 1. on separated datasets
+
+#### Check users activity (posts + comments)
+
+Function to visualize the activity (by post or comments) over time:
+
+```{r}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(patchwork)
+
+plot_activity_over_time <- function(dataset, source = "reddit") {
+  
+  dataset_name <- deparse(substitute(dataset))
+  
+  if (source == "reddit") {
+    dataset <- dataset %>%
+      mutate(
+        comment_created = ymd_hms(comment_created_utc),
+        post_created = ymd_hms(post_created_utc)
+      )
+    
+    # Count comments per day
+    comments_per_day <- dataset %>%
+      mutate(date = as_date(comment_created)) %>%
+      count(date, name = "count")
+    
+    # Count posts per day
+    posts_per_day <- dataset %>%
+      mutate(date = as_date(post_created)) %>%
+      count(date, name = "count")
+    
+    # Plots
+    p_comments <- ggplot(comments_per_day, aes(x = date, y = count)) +
+      geom_line(color = "steelblue") +
+      labs(
+        title = paste("Comments Over Time -", dataset_name),
+        x = "Date",
+        y = "Number of Comments"
+      ) +
+      theme_minimal()
+    
+    p_posts <- ggplot(posts_per_day, aes(x = date, y = count)) +
+      geom_line(color = "darkred") +
+      labs(
+        title = paste("Posts Over Time -", dataset_name),
+        x = "Date",
+        y = "Number of Posts"
+      ) +
+      theme_minimal()
+    
+  } else if (source == "youtube") {
+    dataset <- dataset %>%
+      mutate(
+        comment_created = ymd_hms(comment_published_at),
+        video_created = ymd_hms(video_published_at)
+      )
+    
+    # Count comments per day
+    comments_per_day <- dataset %>%
+      mutate(date = as_date(comment_created)) %>%
+      count(date, name = "count")
+    
+    # Count videos per day
+    videos_per_day <- dataset %>%
+      mutate(date = as_date(video_created)) %>%
+      count(date, name = "count")
+    
+    # Plots
+    p_comments <- ggplot(comments_per_day, aes(x = date, y = count)) +
+      geom_line(color = "steelblue") +
+      labs(
+        title = paste("YouTube Comments Over Time -", dataset_name),
+        x = "Date",
+        y = "Number of Comments"
+      ) +
+      theme_minimal()
+    
+    p_posts <- ggplot(videos_per_day, aes(x = date, y = count)) +
+      geom_line(color = "darkred") +
+      labs(
+        title = paste("YouTube Videos Over Time -", dataset_name),
+        x = "Date",
+        y = "Number of Videos"
+      ) +
+      theme_minimal()
+  }
+  return(p_comments / p_posts + plot_layout(heights = c(1, 1)))
+}
+```
+
+```{r}
+plot_activity_over_time(data_putin_new_p)
+plot_activity_over_time(data_putin_rel_p)
+plot_activity_over_time(data_trump_new_p)
+plot_activity_over_time(data_trump_rel_p)
+plot_activity_over_time(data_trump_zelensky_new_p)
+plot_activity_over_time(data_trump_zelensky_rel_p)
+plot_activity_over_time(data_war_ukraine_new_p)
+plot_activity_over_time(data_war_ukraine_rel_p)
+plot_activity_over_time(data_zelensky_new_p)
+plot_activity_over_time(data_zelensky_rel_p)
+plot_activity_over_time(data_russian_inv_new_p)
+plot_activity_over_time(data_russian_inv_rel_p)
+
+plot_activity_over_time(data_putin_new_u)
+plot_activity_over_time(data_putin_rel_u)
+plot_activity_over_time(data_trump_new_u)
+plot_activity_over_time(data_trump_rel_u)
+plot_activity_over_time(data_trump_zelensky_new_u)
+plot_activity_over_time(data_trump_zelensky_rel_u)
+plot_activity_over_time(data_war_ukraine_new_u)
+plot_activity_over_time(data_war_ukraine_rel_u)
+plot_activity_over_time(data_zelensky_new_u)
+plot_activity_over_time(data_zelensky_rel_u)
+plot_activity_over_time(data_russian_inv_new_u)
+plot_activity_over_time(data_russian_inv_rel_u)
+
+plot_activity_over_time(data_putin_new_wn)
+plot_activity_over_time(data_putin_rel_wn)
+plot_activity_over_time(data_trump_new_wn)
+plot_activity_over_time(data_trump_rel_wn)
+plot_activity_over_time(data_trump_zelensky_new_wn)
+plot_activity_over_time(data_trump_zelensky_rel_wn)
+plot_activity_over_time(data_war_ukraine_new_wn)
+plot_activity_over_time(data_war_ukraine_rel_wn)
+plot_activity_over_time(data_zelensky_new_wn)
+plot_activity_over_time(data_zelensky_rel_wn)
+plot_activity_over_time(data_russian_inv_new_wn)
+plot_activity_over_time(data_russian_inv_rel_wn)
+
+```
+
+
+```{r}
+plot_activity_over_time(data_yt_war_ukraine1, source = "youtube")
+plot_activity_over_time(data_yt_war_ukraine2, source = "youtube")
+plot_activity_over_time(data_yt_war_ukraine1_comm, source = "youtube")
+plot_activity_over_time(data_yt_war_ukraine2_comm, source = "youtube")
+plot_activity_over_time(data_yt_zelensky_trump1, source = "youtube")
+plot_activity_over_time(data_yt_zelensky_trump2, source = "youtube")
+plot_activity_over_time(data_yt_zelensky_trump1_comm, source = "youtube")
+plot_activity_over_time(data_yt_zelensky_trump2_comm, source = "youtube")
+```
+
+
+To visualize the distribution on comments per post for both dataset the
+boxplots are shown:
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(purrr)
+
+plot_comments_per_item <- function(..., source = "reddit") {
+  
+  datasets <- list(...)
+  dataset_names <- as.list(substitute(list(...)))[-1L] |> sapply(deparse)
+  
+  combined_data <- purrr::map2_dfr(datasets, dataset_names, ~ {
+    df <- .x
+    
+    if (source == "reddit") {
+      df %>%
+        group_by(post_id) %>%
+        summarise(n_comments = n(), .groups = "drop") %>%
+        mutate(dataset = .y)
+    } else {
+      df %>%
+        group_by(video_id) %>%
+        summarise(n_comments = n(), .groups = "drop") %>%
+        mutate(dataset = .y)
+    }
+  })
+  
+  ggplot(combined_data, aes(x = dataset, y = n_comments, fill = dataset)) +
+    geom_boxplot() +
+    labs(
+      title = ifelse(source == "reddit",
+                     "Number of Comments per Post by Dataset",
+                     "Number of Comments per Video by Dataset"),
+      x = "Dataset",
+      y = "Number of Comments"
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+}
+
+
+plot_comments_per_item(data_trump_new_p, data_trump_rel_p, data_zelensky_new_p, data_zelensky_rel_p, data_trump_zelensky_new_p, data_trump_zelensky_rel_p, data_putin_new_p, data_putin_rel_p, data_war_ukraine_new_p, data_war_ukraine_rel_p, data_russian_inv_new_p, data_russian_inv_rel_p)
+plot_comments_per_item(data_trump_new_u, data_trump_rel_u, data_zelensky_new_u, data_zelensky_rel_u, data_trump_zelensky_new_u, data_trump_zelensky_rel_u, data_putin_new_u, data_putin_rel_u, data_war_ukraine_new_u, data_war_ukraine_rel_u, data_russian_inv_new_u, data_russian_inv_rel_u)
+plot_comments_per_item(data_trump_new_wn, data_trump_rel_wn, data_zelensky_new_wn, data_zelensky_rel_wn, data_trump_zelensky_new_wn, data_trump_zelensky_rel_wn, data_putin_new_wn, data_putin_rel_wn, data_war_ukraine_new_wn, data_war_ukraine_rel_wn, data_russian_inv_new_wn, data_russian_inv_rel_wn)
+plot_comments_per_item(data_yt_war_ukraine1, data_yt_war_ukraine2, data_yt_war_ukraine1_comm, data_yt_war_ukraine2_comm, data_yt_zelensky_trump1, data_yt_zelensky_trump2, data_yt_zelensky_trump1_comm, data_yt_zelensky_trump2_comm, source = "youtube")
+```
+
+
+#### Frequent words - reddit
+
+ON REDDIT The most frequent words in the comments are visualized across
+three distinct groups:
+
+1.  comments on posts that mention "trump" only,
+
+2.  comments on posts that mention "zelensky" only, and
+
+3.  comments on posts that mention both "trump" and "zelensky".
+
+(it is possible to select words that should be omitted in the plots)
+
+```{r}
+library(tidyverse)
+library(tidytext)
+
+data("stop_words")
+
+plot_top_words_by_topic <- function(dataset, top_n = 20) {
+  dataset_name <- deparse(substitute(dataset))
+  
+  # Custom stopwords
+  custom_stopwords <- c("5", "gt", "https", "time", "1", "it’s", "wiki", "i’m", "I’m")
+  all_stopwords <- stop_words %>%
+    bind_rows(tibble(word = custom_stopwords, lexicon = "custom")) %>%
+    distinct(word)
+
+  # Filter groups
+  comments_only_trump <- dataset %>%
+    filter(str_detect(post_title, regex("trump", ignore_case = TRUE)) &
+             !str_detect(post_title, regex("zelensky", ignore_case = TRUE)))
+  
+  comments_only_zelensky <- dataset %>%
+    filter(str_detect(post_title, regex("zelensky", ignore_case = TRUE)) &
+             !str_detect(post_title, regex("trump", ignore_case = TRUE)))
+  
+  comments_both <- dataset %>%
+    filter(str_detect(post_title, regex("trump", ignore_case = TRUE)) &
+             str_detect(post_title, regex("zelensky", ignore_case = TRUE)))
+  
+  # Tokenize and count
+  words_trump <- comments_only_trump %>%
+    select(comment_body) %>%
+    unnest_tokens(word, comment_body) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Trump only")
+  
+  words_zelensky <- comments_only_zelensky %>%
+    select(comment_body) %>%
+    unnest_tokens(word, comment_body) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Zelensky only")
+  
+  words_both <- comments_both %>%
+    select(comment_body) %>%
+    unnest_tokens(word, comment_body) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Both")
+  
+  top_words_all <- bind_rows(words_trump, words_zelensky, words_both)
+  
+  # Plot for Trump and Zelensky only
+  plot_limited <- top_words_all %>%
+    filter(group %in% c("Trump only", "Zelensky only")) %>%
+    group_by(group) %>%
+    slice_max(n, n = top_n) %>%
+    ungroup() %>%
+    ggplot(aes(x = reorder_within(word, n, group), y = n, fill = group)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~ group, scales = "free_y") +
+    scale_x_reordered() +
+    coord_flip() +
+    labs(
+      title = paste("Top", top_n, "Words in Trump-Only and Zelensky-Only Posts -", dataset_name),
+      x = "Word",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  
+  # Plot for posts mentioning both Trump and Zelensky
+  plot_both <- top_words_all %>%
+    filter(group == "Both") %>%
+    slice_max(n, n = top_n) %>%
+    ggplot(aes(x = reorder(word, n), y = n)) +
+    geom_col(fill = "gray40") +
+    coord_flip() +
+    labs(
+      title = paste("Top", top_n, "Words in Comments on Posts Mentioning Both Trump and Zelensky -", dataset_name),
+      x = "Word",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  
+  # Return both plots as a named list
+  return(list(
+    trump_zelensky_plot = plot_limited,
+    both_plot = plot_both
+  ))
+}
+```
+
+
+```{r}
+plot_top_words_by_topic(data_putin_new_p)
+plot_top_words_by_topic(data_putin_rel_p)
+plot_top_words_by_topic(data_trump_new_p)
+plot_top_words_by_topic(data_trump_rel_p)
+plot_top_words_by_topic(data_trump_zelensky_new_p)
+plot_top_words_by_topic(data_trump_zelensky_rel_p)
+plot_top_words_by_topic(data_war_ukraine_new_p)
+plot_top_words_by_topic(data_war_ukraine_rel_p)
+plot_top_words_by_topic(data_zelensky_new_p)
+plot_top_words_by_topic(data_zelensky_rel_p)
+plot_top_words_by_topic(data_russian_inv_new_p)
+plot_top_words_by_topic(data_russian_inv_rel_p)
+
+plot_top_words_by_topic(data_putin_new_u)
+plot_top_words_by_topic(data_putin_rel_u)
+plot_top_words_by_topic(data_trump_new_u)
+plot_top_words_by_topic(data_trump_rel_u)
+plot_top_words_by_topic(data_trump_zelensky_new_u)
+plot_top_words_by_topic(data_trump_zelensky_rel_u)
+plot_top_words_by_topic(data_war_ukraine_new_u)
+plot_top_words_by_topic(data_war_ukraine_rel_u)
+plot_top_words_by_topic(data_zelensky_new_u)
+plot_top_words_by_topic(data_zelensky_rel_u)
+plot_top_words_by_topic(data_russian_inv_new_u)
+plot_top_words_by_topic(data_russian_inv_rel_u)
+
+plot_top_words_by_topic(data_putin_new_wn)
+plot_top_words_by_topic(data_putin_rel_wn)
+plot_top_words_by_topic(data_trump_new_wn)
+plot_top_words_by_topic(data_trump_rel_wn)
+plot_top_words_by_topic(data_trump_zelensky_new_wn)
+plot_top_words_by_topic(data_trump_zelensky_rel_wn)
+plot_top_words_by_topic(data_war_ukraine_new_wn)
+plot_top_words_by_topic(data_war_ukraine_rel_wn)
+plot_top_words_by_topic(data_zelensky_new_wn)
+plot_top_words_by_topic(data_zelensky_rel_wn)
+plot_top_words_by_topic(data_russian_inv_new_wn)
+plot_top_words_by_topic(data_russian_inv_rel_wn)
+
+
+```
+
+
+#### Frequent words - youtube
+```{r}
+library(tidyverse)
+library(tidytext)
+
+data("stop_words")
+
+plot_top_words_by_topic_youtube <- function(dataset, top_n = 20) {
+  dataset_name <- deparse(substitute(dataset))
+  
+  # 1️⃣ Custom stopwords
+  custom_stopwords <- c("5", "gt", "https", "time", "1", "it’s", "wiki", "i’m", "I’m")
+  all_stopwords <- stop_words %>%
+    bind_rows(tibble(word = custom_stopwords, lexicon = "custom")) %>%
+    distinct(word)
+  
+  # 2️⃣ Basic cleaning: remove empty or short comments
+  dataset_clean <- dataset %>%
+    filter(!is.na(comment_text), str_length(comment_text) > 2)
+  
+  # 3️⃣ Split into topic groups based on video_title
+  comments_only_trump <- dataset_clean %>%
+    filter(str_detect(video_title, regex("\\btrump\\b", ignore_case = TRUE)) &
+             !str_detect(video_title, regex("\\bzelensky\\b", ignore_case = TRUE)))
+  
+  comments_only_zelensky <- dataset_clean %>%
+    filter(str_detect(video_title, regex("\\bzelensky\\b", ignore_case = TRUE)) &
+             !str_detect(video_title, regex("\\btrump\\b", ignore_case = TRUE)))
+  
+  comments_both <- dataset_clean %>%
+    filter(str_detect(video_title, regex("\\btrump\\b", ignore_case = TRUE)) &
+             str_detect(video_title, regex("\\bzelensky\\b", ignore_case = TRUE)))
+  
+  # 4️⃣ Tokenize and count words for each group
+  words_trump <- comments_only_trump %>%
+    select(comment_text) %>%
+    unnest_tokens(word, comment_text) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Trump only")
+  
+  words_zelensky <- comments_only_zelensky %>%
+    select(comment_text) %>%
+    unnest_tokens(word, comment_text) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Zelensky only")
+  
+  words_both <- comments_both %>%
+    select(comment_text) %>%
+    unnest_tokens(word, comment_text) %>%
+    anti_join(all_stopwords, by = "word") %>%
+    count(word, sort = TRUE) %>%
+    mutate(group = "Both")
+  
+  top_words_all <- bind_rows(words_trump, words_zelensky, words_both)
+  
+  # 5️⃣ Plot for Trump and Zelensky only
+  plot_limited <- top_words_all %>%
+    filter(group %in% c("Trump only", "Zelensky only")) %>%
+    group_by(group) %>%
+    slice_max(n, n = top_n) %>%
+    ungroup() %>%
+    ggplot(aes(x = reorder_within(word, n, group), y = n, fill = group)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~ group, scales = "free_y") +
+    scale_x_reordered() +
+    coord_flip() +
+    labs(
+      title = paste("Top", top_n, "Words in Trump-Only and Zelensky-Only YouTube Videos -", dataset_name),
+      x = "Word",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  
+  # 6️⃣ Plot for videos mentioning both
+  plot_both <- top_words_all %>%
+    filter(group == "Both") %>%
+    slice_max(n, n = top_n) %>%
+    ggplot(aes(x = reorder(word, n), y = n)) +
+    geom_col(fill = "gray40") +
+    coord_flip() +
+    labs(
+      title = paste("Top", top_n, "Words in Comments on Videos Mentioning Both Trump and Zelensky -", dataset_name),
+      x = "Word",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  
+  return(list(
+    trump_zelensky_plot = plot_limited,
+    both_plot = plot_both
+  ))
+}
+```
+
+```{r}
+plot_top_words_by_topic_youtube(data_yt_war_ukraine1)
+plot_top_words_by_topic_youtube(data_yt_war_ukraine2)
+plot_top_words_by_topic_youtube(data_yt_war_ukraine1_comm)
+plot_top_words_by_topic_youtube(data_yt_war_ukraine2_comm)
+plot_top_words_by_topic_youtube(data_yt_zelensky_trump1)
+plot_top_words_by_topic_youtube(data_yt_zelensky_trump2)
+plot_top_words_by_topic_youtube(data_yt_zelensky_trump1_comm)
+plot_top_words_by_topic_youtube(data_yt_zelensky_trump2_comm)
+```
+
+
 ### Merge datasets
 
 #### merged reddit
@@ -554,7 +1021,7 @@ data_merged_reddit <- merge_reddit_datasets(
   data_russian_inv_new_p,
   data_russian_inv_new_u,
   data_russian_inv_new_wn,
-  # data_russian_inv_rel_p,  # commentato come nel tuo codice
+  data_russian_inv_rel_p,
   data_russian_inv_rel_u,
   data_russian_inv_rel_wn,
   data_trump_new_p,
@@ -584,6 +1051,31 @@ data_merged_reddit <- merge_reddit_datasets(
 )
 
 ```
+
+```{r}
+data_merged_reddit_rel <- merge_reddit_datasets(
+  data_putin_rel_p,
+  data_putin_rel_u,
+  data_putin_rel_wn,
+  data_russian_inv_rel_p,
+  data_russian_inv_rel_u,
+  data_russian_inv_rel_wn,
+  data_trump_rel_p,
+  data_trump_rel_u,
+  data_trump_rel_wn,
+  data_trump_zelensky_rel_p,
+  data_trump_zelensky_rel_u,
+  data_trump_zelensky_rel_wn,
+  data_war_ukraine_rel_p,
+  data_war_ukraine_rel_u,
+  data_war_ukraine_rel_wn,
+  data_zelensky_rel_p,
+  data_zelensky_rel_u,
+  data_zelensky_rel_wn
+)
+
+```
+
 
 ### merged youtube
 ```{r}
@@ -724,11 +1216,23 @@ filtered_data_reddit <- filter_reddit_data(
 )
 
 dim(filtered_data_reddit)
+
+# only rel
+filtered_data_reddit_rel <- filter_reddit_data(
+  data_merged_reddit_rel,
+  min_post_score = 5,
+  min_comment_score = 5,
+  start_date = "2024-09-01"
+)
+
+dim(filtered_data_reddit_rel)
 ```
 
 ```{r}
 plot_post_comment_scores(filtered_data_reddit, "Filtered Reddit Merged")
+plot_post_comment_scores(filtered_data_reddit_rel, "Filtered Reddit Relevant Merged")
 ```
+
 #### Filter youtube data on "date"
 ```{r}
 library(dplyr)
@@ -1042,6 +1546,7 @@ analyze_sentiment_yt <- function(dataset) {
 ```{r}
 yt_result_old <- analyze_sentiment_yt(filtered_youtube_old)
 ```
+
 ```{r}
 yt_result <- analyze_sentiment_yt(filtered_youtube)
 ```
