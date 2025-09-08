@@ -1,68 +1,68 @@
-# Ukraine War Sentiment Analysis on Reddit & YouTube
+# Sentiment Analysis on the War in Ukraine
 
-This project provides a multi-level sentiment analysis pipeline for public discourse on the war in Ukraine, leveraging data from Reddit and YouTube comments. It focuses on general sentiment, pro-peace vs. pro-conflict stances, and contextual sentiment around key political figures like Trump and Zelensky.
+## Project Description
 
----
+This project analyzes the evolution of public sentiment towards the Russia-Ukraine war through comments on social media platforms like Reddit and YouTube. The study focuses on how sentiment shifts in correspondence with major political and military events, with a particular emphasis on events involving Donald Trump and Volodymyr Zelensky. This analysis is situated within the field of Computational Social Science (CSS), applying sentiment analysis techniques to capture the emotional reactions of the online public.
 
-## 🚀 Project Overview
-
-The core objective was to develop a reproducible data science pipeline for large-scale text analysis. The project integrates custom scripts for data collection from social media platforms with modern natural language processing (NLP) techniques to analyze online political discourse.
-
-### 📋 Prerequisites
-
-To run this project, you will need:
-
-* **Python 3.10+**
-* **YouTube Data API v3** key
-* **Reddit OAuth2** credentials (client ID/secret, username/password, user agent)
-
----
-
-## ⚙️ Analysis Pipeline
-
-The entire analysis is executed within the `sentiment_analysis_final.ipynb` Jupyter notebook, following a structured sequence of steps:
+## Methodology
 
 ### 1. Data Collection
 
-Two custom Python scripts were developed to gather data directly from the platforms' official APIs. The raw data is saved to `data/raw/` in JSON format.
+Data was gathered from two primary sources:
 
-* **YouTube:** Queries the YouTube Data API for videos related to the Ukraine war. It collects video metadata and top-level comments with a minimum like threshold, including selected replies.
-* **Reddit:** Authenticates via OAuth2 and searches specific subreddits for posts related to the war. It retrieves post metadata and comment threads, recursively extracting comments above a minimum score threshold.
+* **Reddit**: Comments extracted from various subreddits related to keywords such as "Putin," "Russian invasion," "Trump," "Zelensky," and "war ukraine."
+* **YouTube**: Comments from videos related to the war in Ukraine and to Trump and Zelensky.
 
-### 2. Preprocessing
+### 2. Data Preprocessing
 
-Before analysis, the comment data undergoes a series of cleaning steps:
+The text from the comments underwent the following preprocessing steps:
 
-* Removal of URLs, mentions, and punctuation.
-* Filtering comments by date and minimum score.
-* Flagging comments that contain war-related keywords.
+* **Text Cleaning**: Removal of URLs, user mentions, and non-alphanumeric characters.
+* **Normalization**: Conversion of all text to lowercase.
+* **Filtering**: Only comments with a score of at least 5 on Reddit were considered, and dates were managed to align data from both platforms.
 
 ### 3. Sentiment Analysis
 
-A pre-trained **transformer-based model** (`distilbert-base-uncased-finetuned-sst-2-english`) is used to classify sentiment. This produces both a categorical label (positive/negative) and a numeric sentiment score.
+A pre-trained Transformer-based model was used for the sentiment analysis:
 
-### 4. War Stance Classification
+* **Model**: `distilbert-base-uncased-finetuned-sst-2-english`, an efficient model for sentiment classification.
+* **Multi-level Approach**:
+    * **General Sentiment**: Classification of comments as positive, negative, or neutral.
+    * **Contextual Sentiment**: Analysis of sentiment towards specific entities (Trump, Zelensky, peace) by examining the context of the sentences in which they are mentioned.
+    * **Stance on the War**: Classification of comments as "pro-peace" or "pro-conflict" based on specific keywords.
 
-A **heuristic approach** based on predefined keyword lists is used to classify comments as having a pro-peace, pro-conflict, or neutral stance.
+## Main Results
 
-### 5. Entity-Level Contextual Sentiment
+The analysis revealed the following key findings:
 
-The pipeline identifies and extracts sentence windows where key entities (e.g., **Trump**, **Zelensky**, **Peace**) are mentioned. Sentiment is then scored specifically within these contexts to understand public opinion toward each entity.
+* **General Sentiment on the War**:
+    * On **Reddit**, 76.7% of comments related to the war have a negative sentiment, with an average score of -0.527.
+    * On **YouTube**, 65.2% of comments have a negative sentiment, with an average score of -0.297.
+* **Sentiment Towards Entities**:
+    * **Trump**: Has a negative average sentiment on both platforms (-0.493 on Reddit, -0.379 on YouTube).
+    * **Zelensky**: Sentiment towards Zelensky is also predominantly negative, with scores of -0.339 on Reddit and -0.361 on YouTube.
+    * **Peace**: The concept of peace is associated with a negative sentiment (-0.442 on Reddit, -0.191 on YouTube), suggesting that discussions about peace often occur in contexts of criticism or frustration.
+* **Correlations**: A strong positive correlation was observed between the general sentiment on the war and the sentiment towards Trump and Zelensky, indicating that discussions about these figures are closely linked to opinions on the conflict.
 
----
+## Repository Structure
 
-## 📈 Key Findings (Example Run)
+* `/data`: Contains the raw datasets collected from Reddit and YouTube.
+* `/results`: Contains the processed datasets with sentiment analysis and the generated plots.
+* `sentiment_analysis_final.ipynb`: The Jupyter notebook containing all the code for the analysis.
+* `Computational_Social_Science.pdf`: The research paper describing the study in detail.
 
-An example run of the pipeline yielded the following insights:
+## How to Run the Project
 
-### Reddit
+1.  **Clone the repository**:
+    ```bash
+    git clone [https://github.com/elisa-negrini/CSS_project.git](https://github.com/elisa-negrini/CSS_project.git)
+    ```
 
-* **Comments:** Approximately 211,000 comments were collected, with 73,000 being directly war-related.
-* **War Sentiment:** The average sentiment towards the war was strongly negative, with an average score of **−0.53**.
-* **Entity Sentiment:** Contextual sentiment for Trump, Zelensky, and Peace was found to be predominantly negative.
+2.  **Install the dependencies**:
+    Ensure you have Python installed, along with the following libraries:
+    ```bash
+    pip install pandas numpy re transformers torch matplotlib seaborn wordcloud scikit-learn nltk
+    ```
 
-### YouTube
-
-* **Comments:** Around 151,000 comments were gathered, with 57,000 related to the war.
-* **War Sentiment:** The average sentiment was negative, with a score of **−0.30**.
-* **Entity Sentiment:** Mentions of both Trump and Zelensky were significant, with their contextual sentiment being mostly negative.
+3.  **Run the notebook**:
+    Open and run the `sentiment_analysis_final.ipynb` file in a Jupyter environment. The notebook will load the data, perform the analysis, and save the results in the `/results` folder.
